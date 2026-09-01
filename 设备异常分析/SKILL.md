@@ -15,8 +15,8 @@ description: 用于设备异常分析。根据用户给定的时间、组织、�
 # 这个 skill 解决什么问题
 现场要回答"这段时间哪条线故障最多、那条线哪几台设备故障最多、这些设备停了多久"。手动要查两次故障指标 + 一次停机指标 + 自己挑 Top3 + 合并,链路长。本 skill 把这条链路串起来,直接给一张"线体下 Top3 故障设备 + 计划外停机时长"的明细表。
 
-# 依赖(平台自动触发 / 子skill / MCP)
-- 子skill「IOC指标入参解析」(见 README 子skill 清单):把(时间、组织、分析维度、分组、指标ID)组装成 IOC 指标入参 JSON,含 startTime/endTime/analyseDimList/orgDimList/groupBy 等。本 skill 调用它时只传 5 个 arguments,维度元数据由该子skill 自己取,本 skill 不干预。
+# 依赖(子skill / MCP)
+- 子skill「IOC指标入参解析」(见 README 子skill 清单):把(时间、组织、分析维度、分组、指标ID)组装成 IOC 指标入参 JSON,含 startTime/endTime/analyseDimList/orgDimList/groupBy 等。本 skill 调用时只传 5 个 arguments,维度元数据由该子skill 自己取,本 skill 不干预。
 - MCP「指标数据检索MCP」:按入参查指标汇总数据。入参结构 = 子skill「IOC指标入参解析」的输出 JSON。本 skill 把子skill 输出原样透传给该 MCP,不重命名/不改类型/不补字段。
 
 # 输入
