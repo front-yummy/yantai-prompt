@@ -109,7 +109,7 @@ mcp(system_time) 返回服务所在机器的 ISO 时间 + 时区 + Unix 时间�
 
 填充字段(从命中条目复制):levelCode、dimensionId、orgDimCode(=dimCode)、orgDimName(=dimName)、orgDimNameValues(命中值数组)。
 
-为什么这样设计:先靠维度词把范围缩到一类维度,再用值在这类维度的条目里精确命中,避免把值误填到无关层级。多个同 levelName 的条目靠值的 dimNameValueList 自然区分。
+为什么这样设计:先靠维度词把范围缩到一类维度,再用值在这类维度的条目里精确命中,避免把值误填到无关层级。
 
 4. 分析维度(analyseDimList)
 逻辑同组织维度(语义识别维度 -> 定位条目 -> 匹配值 -> 合并),在 dimType=="分析维度" 条目中处理。若无分析维度条目,analyseDimList 为 []。
@@ -159,7 +159,7 @@ mcp(system_time) 返回服务所在机器的 ISO 时间 + 时区 + Unix 时间�
 # 输出格式(再次强调)
 - 只输出一个 JSON 对象,从 { 开始,到 } 结束,前后无任何文字
 - 所有字段必须存在,无法提取或匹配的用 "" 或 []
-- orgDimList / analyseDimList 只输出匹配到的条目,匹配不到直接 [],不输出空条目
+- orgDimList / analyseDimList 只输出匹配到的条目,匹配不到直接 [],不输出空条目，orgDimList和analyseDimList不可以同时为[]
 - 字段保持一致:组织维度条目统一输出 levelCode/dimensionId/orgDimCode/orgDimName/orgDimNameValues,不输出多余字段
 - 唯一例外:需客户补充信息时(时间粒度不在列表 / 时间范围无法解析),只输出一句提醒文字,不输出 JSON
 

@@ -15,14 +15,14 @@ description: 用于设备异常分析。根据用户给定的时间、组织、�
 # 这个 skill 解决什么问题
 现场要回答"这段时间哪条线故障最多、那条线哪几台设备故障最多、这些设备停了多久"。手动要查两次故障指标 + 一次停机指标 + 自己挑 Top3 + 合并,链路长。本 skill 把这条链路串起来,直接给一张"线体下 Top3 故障设备 + 计划外停机时长"的明细表。
 
-# 依赖(子skill / MCP)
-- 子skill「IOC指标入参解析」(见 README 子skill 清单):把(时间、组织、分析维度、分组、指标ID)组装成 IOC 指标入参 JSON,含 startTime/endTime/analyseDimList/orgDimList/groupBy 等。本 skill 调用时只传 5 个 arguments,维度元数据由该子skill 自己取,本 skill 不干预。
-- MCP「指标数据检索MCP」:按入参查指标汇总数据。入参结构 = 子skill「IOC指标入参解析」的输出 JSON。本 skill 把子skill 输出原样透传给该 MCP,不重命名/不改类型/不补字段。
+# 依赖(平台自动触发 / 子skill / MCP)
+- 子skill「维度识别Skill」(见 README 子skill 清单):把(时间、组织、分析维度、分组、指标ID)组装成 IOC 指标入参 JSON,含 startTime/endTime/analyseDimList/orgDimList/groupBy 等。本 skill 调用它时只传 5 个 arguments,维度元数据由该子skill 自己取,本 skill 不干预。
+- MCP「指标数据检索MCP」:按入参查指标汇总数据。入参结构 = 子skill「维度识别Skill」的输出 JSON。本 skill 把子skill 输出原样透传给该 MCP,不重命名/不改类型/不补字段。
 
 # 输入
-- 用户时间表达(如"2026年6月""2026-06-01到2026-06-26")
-- 用户组织值(如"NME厂")
-- 用户分析值(如某机种)
+- 用户时间表达(如"2026年7月""本周""上个月""2026-06-01到2026-06-26")
+- 用户组织值(如"NME厂""ASSY制程")
+- 用户分析值(如"TNS-L側蓋FPC基板前加工机种")
 
 说明:group(分组维度)和 indexId(指标ID)由本 skill 内部按步骤固定传给子skill,不取用户值。
 
@@ -44,12 +44,12 @@ skill 内部的步骤处理不受此约束:提取最大值、排序取 Top3、�
 # 处理流程(内部执行,不输出)
 
 步骤1:组装"各线体故障次数"入参
-调用子skill「IOC指标入参解析」,arguments:
-- time = 用户时间值
-- org = 用户组织值
-- analysis = 用户分析值
-- group = 線別(固定)
-- indexId = 2056308992057405441(固定,故障次数)
+调用子skill「维度识别Skill」,必须包含如下arguments：
+- `time` = 用户时间表达
+- `org` = 用户组织值
+- `analysis` = 用户分析值
+- `group` =  `線別`（固定值）
+- `indexId`=  `2056308992057405441`（固定值，故障次数）
 输出:step1_result(JSON 对象)。
 
 步骤2:查各线体故障次数
@@ -65,11 +65,11 @@ skill 内部的步骤处理不受此约束:提取最大值、排序取 Top3、�
 
 步骤4:组装"目标线体各设备故障次数"入参
 调用子skill「维度识别Skill」,arguments:
-- time = 用户时间值
-- org = target_line(步骤3 的线体)
-- analysis = 用户分析值
-- group = 设备名称(固定)
-- indexId = 2056308992057405441(固定,故障次数)
+- `time` = 用户时间表达
+- `org` = target_line(步骤3 的线体)
+- `analysis` = 用户分析值
+- `group` = 设备名称（固定值）
+- `indexId` = `2056308992057405441`（固定值，故障次数）
 输出:step4_result(JSON 对象)。
 
 步骤5:查目标线体各设备故障次数 -> 取 Top3
@@ -81,11 +81,11 @@ skill 内部的步骤处理不受此约束:提取最大值、排序取 Top3、�
 
 步骤6:组装"Top3设备计划外停机时长"入参
 调用子skill「维度识别Skill」,arguments:
-- time = 用户时间值
-- org = target_line(步骤3 的线体)
-- analysis = 用户分析值 + 设备名称为 top3_device_names(步骤5)
-- group = 设备名称(固定)
-- indexId = 2056309325596848130(固定,计划外停机时长,注意与步骤1/4 不同)
+- `time` = 用户时间表达
+- `org` = target_line(步骤3 的线体)
+- `analysis` = 用户分析值 + 设备名称为 top3_device_names(步骤5)
+- `group` = 设备名称(固定值)
+- `indexId` = `2056309325596848130`（固定值,计划外停机时长,注意与步骤1/4 不同)
 输出:step6_result(JSON 对象)。
 
 步骤7:查 Top3 设备的计划外停机时长
@@ -102,7 +102,7 @@ skill 内部的步骤处理不受此约束:提取最大值、排序取 Top3、�
 # 输出格式(再次强调)
 - 只输出一份 Markdown 文档,结构见示例
 - 标题"设备异常分析结果"
-- 分析时间范围:从 step1_result 的 startTime/endTime 取(或直接用用户时间值)
+- 分析时间范围:从 step1_result 的 startTime/endTime 取(或直接用用户时间表达)
 - 故障次数最高的线体 + 次数
 - Top3 设备明细表:设备名称 / 故障次数 / 计划外停机时长(小时)
 - 不足3台设备时,表格按实际行数输出,不补空行
@@ -123,4 +123,3 @@ skill 内部的步骤处理不受此约束:提取最大值、排序取 Top3、�
 | 设备B    | 15       | 120                    |
 | 设备C    | 10       | 85                     |
 | 设备D    | 8        | 0                      |
-
